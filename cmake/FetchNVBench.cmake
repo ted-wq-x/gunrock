@@ -14,7 +14,7 @@ FetchContent_Declare(
 
 FetchContent_GetProperties(nvbench)
 if(NOT nvbench_POPULATED)
-  FetchContent_Populate(
+  FetchContent_MakeAvailable(
     nvbench
   )
 endif()

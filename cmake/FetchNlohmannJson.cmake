@@ -14,7 +14,7 @@ FetchContent_Declare(
 
 FetchContent_GetProperties(json)
 if(NOT json_POPULATED)
-  FetchContent_Populate(
+  FetchContent_MakeAvailable(
     json
   )
 endif()
