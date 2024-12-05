@@ -14,7 +14,7 @@ FetchContent_Declare(
 
 FetchContent_GetProperties(cmake_modules)
 if(NOT cmake_modules_POPULATED)
-  FetchContent_MakeAvailable(
+  FetchContent_Populate(
     cmake_modules
   )
 endif()

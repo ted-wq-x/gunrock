@@ -14,7 +14,7 @@ FetchContent_Declare(
 
 FetchContent_GetProperties(rapidjson)
 if(NOT rapidjson_POPULATED)
-  FetchContent_MakeAvailable(
+  FetchContent_Populate(
     rapidjson
   )
 endif()
