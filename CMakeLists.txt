@@ -22,6 +22,9 @@ set(ESSENTIALS_VERSION_MINOR 1)
 set(ESSENTIALS_VERSION_PATCH 0)
 # end /* Update Essentials version */
 
+#第一次构建完成后打开,避免重复下载
+set(FETCHCONTENT_FULLY_DISCONNECTED true)
+
 set(ESSENTIALS_VERSION "${ESSENTIALS_VERSION_MAJOR}.${ESSENTIALS_VERSION_MINOR}.${ESSENTIALS_VERSION_PATCH}")
 
 # Select "Release" as the default build type.

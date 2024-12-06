@@ -20,8 +20,9 @@ template <typename weight_t>
 struct param_t {
   weight_t alpha;
   weight_t tol;
-
-  param_t(weight_t _alpha, weight_t _tol) : alpha(_alpha), tol(_tol) {}
+  unsigned int total_iterations;
+  param_t(weight_t _alpha, weight_t _tol, unsigned int total_iterations)
+      : alpha(_alpha), tol(_tol), total_iterations(total_iterations) {}
 };
 
 template <typename weight_t>
@@ -120,9 +121,8 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
 
     // >> handle "dangling nodes" (nodes w/ zero outdegree)
     // could skip this if no nodes have sero outdegree
-    auto compute_dangling = [=] __host__ __device__(const int& i) -> weight_t {
-      return iweights[i] == 0 ? alpha * p[i] : 0;
-    };
+    auto compute_dangling = [=] __host__ __device__(const int& i)
+        -> weight_t { return iweights[i] == 0 ? alpha * p[i] : 0; };
 
     float dsum = thrust::transform_reduce(
         policy, thrust::counting_iterator<vertex_t>(0),
@@ -168,10 +168,15 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
   }
 
   virtual bool is_converged(gcuda::multi_context_t& context) {
-    if (this->iteration == 0)
-      return false;
-
     auto P = this->get_problem();
+    auto total_iterations = P->param.total_iterations;
+    if (this->iteration == total_iterations) {
+      return true;
+    }
+    if (this->iteration == 0) {
+      return false;
+    }
+
     auto G = P->get_graph();
     auto tol = P->param.tol;
 
@@ -179,9 +184,8 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
     auto p = P->result.p;
     auto plast = P->plast.data().get();
 
-    auto abs_diff = [=] __host__ __device__(const int& i) -> weight_t {
-      return abs(p[i] - plast[i]);
-    };
+    auto abs_diff = [=] __host__ __device__(const int& i)
+        -> weight_t { return abs(p[i] - plast[i]); };
 
     auto policy = this->context->get_context(0)->execution_policy();
     float err = thrust::transform_reduce(
@@ -198,6 +202,7 @@ template <typename graph_t>
 float run(graph_t& G,
           typename graph_t::weight_type alpha,
           typename graph_t::weight_type tol,
+          const unsigned int total_iterations,
           typename graph_t::weight_type* p,  // Output
           std::shared_ptr<gcuda::multi_context_t> context =
               std::shared_ptr<gcuda::multi_context_t>(
@@ -210,7 +215,7 @@ float run(graph_t& G,
   using param_type = param_t<weight_t>;
   using result_type = result_t<weight_t>;
 
-  param_type param(alpha, tol);
+  param_type param(alpha, tol, total_iterations);
   result_type result(p);
   // </user-defined>
 

@@ -64,7 +64,7 @@ void test_pr(int num_arguments, char** argument_array) {
   for (int i = 0; i < params.num_runs; i++) {
     benchmark::INIT_BENCH();
 
-    run_times.push_back(gunrock::pr::run(G, alpha, tol, p.data().get()));
+    run_times.push_back(gunrock::pr::run(G, alpha, tol, 100, p.data().get()));
 
     benchmark::host_benchmark_t metrics = benchmark::EXTRACT();
     benchmark_metrics[i] = metrics;
