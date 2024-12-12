@@ -144,11 +144,11 @@ struct csr_t {
 
     // Read metadata
     error::throw_if_exception(
-        fread(&number_of_rows, sizeof(index_t), 1, file) != 0);
+        fread(&number_of_rows, sizeof(index_t), 1, file) == 0);
     error::throw_if_exception(
-        fread(&number_of_columns, sizeof(index_t), 1, file) != 0);
+        fread(&number_of_columns, sizeof(index_t), 1, file) == 0);
     error::throw_if_exception(
-        fread(&number_of_nonzeros, sizeof(offset_t), 1, file) != 0);
+        fread(&number_of_nonzeros, sizeof(offset_t), 1, file) == 0);
 
     row_offsets.resize(number_of_rows + 1);
     column_indices.resize(number_of_nonzeros);
@@ -163,13 +163,13 @@ struct csr_t {
 
       error::throw_if_exception(
           fread(memory::raw_pointer_cast(h_row_offsets.data()),
-                sizeof(offset_t), number_of_rows + 1, file) != 0);
+                sizeof(offset_t), number_of_rows + 1, file) == 0);
       error::throw_if_exception(
           fread(memory::raw_pointer_cast(h_column_indices.data()),
-                sizeof(index_t), number_of_nonzeros, file) != 0);
+                sizeof(index_t), number_of_nonzeros, file) == 0);
       error::throw_if_exception(
           fread(memory::raw_pointer_cast(h_nonzero_values.data()),
-                sizeof(value_t), number_of_nonzeros, file) != 0);
+                sizeof(value_t), number_of_nonzeros, file) == 0);
 
       // Copy data from host to device
       row_offsets = h_row_offsets;
@@ -181,13 +181,13 @@ struct csr_t {
 
       error::throw_if_exception(
           fread(memory::raw_pointer_cast(row_offsets.data()), sizeof(offset_t),
-                number_of_rows + 1, file) != 0);
+                number_of_rows + 1, file) == 0);
       error::throw_if_exception(
           fread(memory::raw_pointer_cast(column_indices.data()),
-                sizeof(index_t), number_of_nonzeros, file) != 0);
+                sizeof(index_t), number_of_nonzeros, file) == 0);
       error::throw_if_exception(
           fread(memory::raw_pointer_cast(nonzero_values.data()),
-                sizeof(value_t), number_of_nonzeros, file) != 0);
+                sizeof(value_t), number_of_nonzeros, file) == 0);
     }
   }
 
