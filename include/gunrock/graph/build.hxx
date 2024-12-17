@@ -15,6 +15,22 @@
 namespace gunrock {
 namespace graph {
 
+template <memory_space_t space,
+          typename edge_t,
+          typename vertex_t,
+          typename weight_t,
+          typename new_weight_t>
+auto build(graph::graph_t<
+               space,
+               vertex_t,
+               edge_t,
+               weight_t,
+               graph::graph_csr_t<space, vertex_t, edge_t, weight_t>>& old_G,
+           vector_t<new_weight_t, space>& new_value) {
+  return detail::builder<space, vertex_t, edge_t, weight_t, new_weight_t>(
+      old_G, raw_pointer_cast(new_value.data()));
+}
+
 /**
  * @brief Builds a graph using CSR object.
  *

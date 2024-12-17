@@ -213,6 +213,25 @@ class graph_t : public graph_view_t... {
     input_view_t::set(format);
   }
 
+  template <class input_view_t = default_view_t>
+  void set(vertex_type number_of_vertices,
+           edge_type number_of_edges,
+           void* v1,
+           void* v2,
+           weight_type* v3) {
+    input_view_t::set(number_of_vertices, number_of_edges, v1, v2, v3);
+  }
+
+  template <class input_view_t = default_view_t>
+  __host__ __forceinline__ void* getV1() const {
+    return input_view_t::getV1();
+  }
+
+  template <class input_view_t = default_view_t>
+  __host__ __forceinline__ void* getV2() const {
+    return input_view_t::getV2();
+  }
+
   /**
    * @brief Get the number of neighbors for a given vertex.
    *
@@ -333,7 +352,7 @@ class graph_t : public graph_view_t... {
   /// includes empty structs, with true_view_t being the only valid views.
   static constexpr std::size_t number_of_formats_inherited =
       std::tuple_size_v<true_view_t>;
-
+public:
   graph_properties_t properties;
 
 };  // class graph_t

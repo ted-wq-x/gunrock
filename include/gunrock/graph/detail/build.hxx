@@ -18,6 +18,37 @@ namespace detail {
 template <memory_space_t space,
           typename edge_t,
           typename vertex_t,
+          typename weight_t,
+          typename new_weight_t>
+auto builder(graph::graph_t<
+                 space,
+                 vertex_t,
+                 edge_t,
+                 weight_t,
+                 graph::graph_csr_t<space, vertex_t, edge_t, weight_t>>& old_G,
+             new_weight_t* new_value) {
+  // Enable CSR.
+  using new_csr_v_t = graph::graph_csr_t<space, vertex_t, edge_t, new_weight_t>;
+  using old_csr_v_t = graph::graph_csr_t<space, vertex_t, edge_t, weight_t>;
+  using new_graph_type =
+      graph::graph_t<space, vertex_t, edge_t, new_weight_t, new_csr_v_t>;
+
+  auto number_of_edges = old_G.template get_number_of_edges<old_csr_v_t>();
+  auto number_of_vertices =
+      old_G.template get_number_of_vertices<old_csr_v_t>();
+  auto v1 = old_G.template getV1<old_csr_v_t>();
+  auto v2 = old_G.template getV2<old_csr_v_t>();
+
+  new_graph_type G(old_G.properties);
+  G.template set<new_csr_v_t>(number_of_vertices, number_of_edges, v1, v2,
+                              new_value);
+
+  return G;
+}
+
+template <memory_space_t space,
+          typename edge_t,
+          typename vertex_t,
           typename weight_t>
 auto builder(graph::graph_properties_t properties,
              format::csr_t<space, vertex_t, edge_t, weight_t>& csr) {

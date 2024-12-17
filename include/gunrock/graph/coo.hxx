@@ -127,6 +127,23 @@ class graph_coo_t {
     values = raw_pointer_cast(coo.nonzero_values.data());
   }
 
+  __host__ void set(vertex_type number_of_vertices,
+                    edge_type number_of_edges,
+                    void* v1,
+                    void* v2,
+                    weight_type* v3) {
+    this->number_of_vertices = number_of_vertices;
+    this->number_of_edges = number_of_edges;
+
+    row_indices = static_cast<vertex_type*>(v1);
+    column_indices = static_cast<vertex_type*>(v2);
+    values = v3;
+  }
+
+  __host__ void* getV1() const { return row_indices; }
+  __host__ void* getV2() const { return column_indices; }
+
+
  private:
   // Underlying data storage
   vertex_type number_of_vertices;
