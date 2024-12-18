@@ -220,13 +220,13 @@ inline constexpr unsigned compute_version(device_properties_t& prop) {
   return prop.major * 10 + prop.minor;
 }
 
-unsigned device_count() {
+inline unsigned device_count() {
   int device_count;
   cudaGetDeviceCount(&device_count);
   return device_count;
 }
 
-unsigned driver_version() {
+inline unsigned driver_version() {
   int driver_version;
   cudaDriverGetVersion(&driver_version);
   return driver_version;
@@ -248,13 +248,13 @@ inline constexpr unsigned multi_processor_count(device_properties_t& prop) {
   return prop.multiProcessorCount;
 }
 
-unsigned runtime_version() {
+inline unsigned runtime_version() {
   int runtime_version;
   cudaRuntimeGetVersion(&runtime_version);
   return runtime_version;
 }
 
-void set_device_properties(device_properties_t* prop) {
+inline void set_device_properties(device_properties_t* prop) {
   device_id_t ordinal;
   cudaGetDevice(&ordinal);
   cudaGetDeviceProperties(prop, ordinal);
@@ -270,7 +270,7 @@ inline int get_max_grid_dimension_x(device_id_t device) {
   return max_dim_x;
 }
 
-void print(device_properties_t& prop) {
+static void print(device_properties_t& prop) {
   device_id_t ordinal;
   cudaGetDevice(&ordinal);
 

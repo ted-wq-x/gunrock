@@ -14,7 +14,11 @@
 #include <gunrock/cuda/cuda.hxx>
 
 #include <gunrock/framework/operators/configs.hxx>
+
+#if (ESSENTIALS_COLLECT_METRICS)
 #include <gunrock/framework/benchmark.hxx>
+#endif
+
 
 #include <thrust/transform_scan.h>
 #include <thrust/iterator/discard_iterator.h>

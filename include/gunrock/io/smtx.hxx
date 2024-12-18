@@ -32,7 +32,7 @@ namespace io {
 
 using namespace memory;
 
-std::string leading_trim(std::string s) {
+static std::string leading_trim(std::string s) {
   size_t start = s.find_first_not_of(" ");
   return (start == std::string::npos) ? "" : s.substr(start);
 }

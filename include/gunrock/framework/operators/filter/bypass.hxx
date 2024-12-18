@@ -1,7 +1,10 @@
 #pragma once
 
 #include <gunrock/framework/operators/configs.hxx>
+#if (ESSENTIALS_COLLECT_METRICS)
 #include <gunrock/framework/benchmark.hxx>
+#endif
+
 
 #include <thrust/transform.h>
 

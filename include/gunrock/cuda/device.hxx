@@ -16,7 +16,7 @@ typedef int device_id_t;
 
 namespace device {
 
-void set(gcuda::device_id_t device) {
+inline void set(gcuda::device_id_t device) {
   cudaSetDevice(device);
 }
 

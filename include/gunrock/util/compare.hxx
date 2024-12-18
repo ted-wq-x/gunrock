@@ -17,7 +17,7 @@ namespace gunrock {
 namespace util {
 
 namespace detail {
-auto default_comparator = [](auto& a, auto& b) -> bool { return a != b; };
+static auto default_comparator = [](auto& a, auto& b) -> bool { return a != b; };
 }  // namespace detail
 
 /**

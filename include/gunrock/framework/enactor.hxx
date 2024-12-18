@@ -14,7 +14,9 @@
 
 #include <gunrock/framework/frontier/frontier.hxx>
 #include <gunrock/framework/problem.hxx>
+#if (ESSENTIALS_COLLECT_METRICS)
 #include <gunrock/framework/benchmark.hxx>
+#endif
 
 #pragma once
 
