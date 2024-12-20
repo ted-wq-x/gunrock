@@ -9,7 +9,7 @@ set(FETCHCONTENT_BASE_DIR ${FC_BASE})
 FetchContent_Declare(
     cccl
     GIT_REPOSITORY https://github.com/NVIDIA/cccl.git
-    GIT_TAG        main
+    GIT_TAG        v2.6.1
 )
 
 FetchContent_GetProperties(cccl)
