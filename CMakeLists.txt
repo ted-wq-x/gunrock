@@ -236,7 +236,7 @@ endif(ESSENTIALS_COLLECT_METRICS)
 ####################################################
 option(ESSENTIALS_BUILD_EXAMPLES
   "If on, builds the example graph applications."
-  ON)
+  OFF)
 
 # Subdirectories for examples, testing and documentation
 if(ESSENTIALS_BUILD_EXAMPLES)
@@ -248,7 +248,7 @@ endif(ESSENTIALS_BUILD_EXAMPLES)
 ####################################################
 option(ESSENTIALS_BUILD_TESTS
   "If on, builds the unit tests."
-  ON)
+  OFF)
 
 # Subdirectories for examples, testing and documentation
 if(ESSENTIALS_BUILD_TESTS)

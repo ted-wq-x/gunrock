@@ -14,7 +14,7 @@ FetchContent_Declare(
 
 FetchContent_GetProperties(moderngpu)
 if(NOT moderngpu_POPULATED)
-  FetchContent_Populate(
+  FetchContent_MakeAvailable(
     moderngpu
   )
 endif()
