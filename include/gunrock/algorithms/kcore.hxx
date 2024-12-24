@@ -187,10 +187,6 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
     bool graph_empty = thrust::all_of(
         policy, P->deleted.begin(), P->deleted.end(), thrust::identity<bool>());
 
-    if (graph_empty) {
-      printf("degeneracy = %u\n", this->iteration);
-    }
-
     // Fill the frontier with a sequence of vertices from 0 -> n_vertices.
     f->sequence((vertex_t)0, n_vertices, context.get_context(0)->stream());
 
