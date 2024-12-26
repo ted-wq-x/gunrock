@@ -150,7 +150,7 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
     edge_t estimated_nzs = P->nnz[0];
 
     /// Step . Allocate upperbound memory for C's values and column indices.
-    column_indices.resize(estimated_nzs, -1);
+    column_indices.resize(estimated_nzs, std::numeric_limits<vertex_t>::max());
     nonzero_values.resize(estimated_nzs, weight_t(0));
 
     edge_t* row_off = row_offsets.data().get();
@@ -225,7 +225,7 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
       for (auto nz = row_off[row]; nz < row_off[row + 1]; ++nz) {
         // Find the invalid column indices and zero-values, they represent
         // overestimated nonzeros.
-        if (col_ind[nz] == -1)
+        if (col_ind[nz] == std::numeric_limits<vertex_t>::max())
           overestimated_nzs += 1;
       }
       // Remove overestimated nonzeros.
@@ -252,7 +252,7 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
     auto itc = thrust::copy_if(
         policy, column_indices.begin(), column_indices.end(),
         column_indices.begin(),
-        [] __host__ __device__(const vertex_t& x) -> bool { return x != -1; });
+        [] __host__ __device__(const vertex_t& x) -> bool { return x != std::numeric_limits<vertex_t>::max(); });
 
     auto itv =
         thrust::copy_if(policy, nonzero_values.begin(), nonzero_values.end(),

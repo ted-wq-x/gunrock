@@ -54,7 +54,7 @@ struct problem_t : gunrock::problem_t<graph_t> {
 
     // Execution policy for a given context (using single-gpu).
     auto policy = this->context->get_context(0)->execution_policy();
-    thrust::fill(policy, visited.begin(), visited.end(), -1);
+    thrust::fill(policy, visited.begin(), visited.end(), std::numeric_limits<vertex_t>::max());
   }
 
   void reset() override {
@@ -73,7 +73,7 @@ struct problem_t : gunrock::problem_t<graph_t> {
                  d_distances + single_source + 1, 0);
 
     thrust::fill(policy, visited.begin(), visited.end(),
-                 -1);  // This does need to be reset in between runs though
+                  std::numeric_limits<vertex_t>::max());  // This does need to be reset in between runs though
   }
 };
 

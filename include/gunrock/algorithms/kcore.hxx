@@ -39,6 +39,8 @@ struct problem_t : gunrock::problem_t<graph_t> {
   thrust::device_vector<bool> deleted;
   thrust::device_vector<bool> to_be_deleted;
 
+  int current_K = 0;
+
   void init() {
     // Get the graph
     auto g = this->get_graph();
@@ -53,6 +55,7 @@ struct problem_t : gunrock::problem_t<graph_t> {
   }
 
   void reset() {
+    current_K = 0;
     auto g = this->get_graph();
 
     auto k_cores = this->result.k_cores;
@@ -66,9 +69,8 @@ struct problem_t : gunrock::problem_t<graph_t> {
     // set initial `degrees` values to be vertices' actual degree
     // will reduce these as vertices are removed from k-cores with increasing k
     // value
-    auto get_degree = [=] __host__ __device__(const int& i) -> int {
-      return g.get_number_of_neighbors(i);
-    };
+    auto get_degree = [=] __host__ __device__(const int& i)
+        -> int { return g.get_number_of_neighbors(i); };
 
     thrust::transform(policy, thrust::counting_iterator<vertex_t>(0),
                       thrust::counting_iterator<vertex_t>(n_vertices),
@@ -76,9 +78,8 @@ struct problem_t : gunrock::problem_t<graph_t> {
 
     // mark zero degree vertices as deleted
     auto degrees_data = degrees.data().get();
-    auto mark_zero_degrees = [=] __host__ __device__(const int& i) -> bool {
-      return (degrees_data[i] == 0) ? true : false;
-    };
+    auto mark_zero_degrees = [=] __host__ __device__(const int& i)
+        -> bool { return (degrees_data[i] == 0) ? true : false; };
 
     thrust::transform(policy, thrust::counting_iterator<vertex_t>(0),
                       thrust::counting_iterator<vertex_t>(n_vertices),
@@ -122,9 +123,10 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
     auto f = this->get_input_frontier();
 
     // Get current iteration of application
-    auto k = this->iteration + 1;
+    auto k = P->current_K;
 
-    // Mark vertices with degree <= k for deletion and output their neighbors
+    // Mark vertices with degree <= k for deletion and output their
+    // neighbors
     auto advance_op = [=] __host__ __device__(
                           vertex_t const& source,    // source of edge
                           vertex_t const& neighbor,  // destination of edge
@@ -150,12 +152,19 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
         return false;
       }
 
+      //?-1为何.理论上每次迭代,点删除时,其邻居的degree-1
+      // 因为advance_op输出的点就是要执行degree-1的邻居.所以要atomic(会有多个相同的点进来)
       int old_degrees = math::atomic::add(&degrees[vertex], -1);
-      return (old_degrees != (k + 1)) ? false : true;
+      // old_degrees - 1表示的就是更新后的值
+      // return true 表示保留在outFrontier中,也就是下一次要删除的点
+      return old_degrees - 1 == k;
+      // return (old_degrees != (k + 1)) ? false : true;
     };
 
+    // 这里的while,实际处理的就为k时的删除操作,图中删除一个点后会有连锁反应
     while (!f->is_empty()) {
       // Execute advance operator
+      // 输出删除点的邻居
       operators::advance::execute<operators::load_balance_t::block_mapped>(
           G, E, advance_op, context);
 
@@ -183,14 +192,28 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
     auto f = this->get_input_frontier();
     auto policy = context.get_context(0)->execution_policy();
 
-    //  Check if all vertices have been removed from graph
-    bool graph_empty = thrust::all_of(
-        policy, P->deleted.begin(), P->deleted.end(), thrust::identity<bool>());
+    auto deleted = P->deleted.data().get();
+    auto degrees = P->degrees.data().get();
+    auto find_min_degree_op =
+        [deleted, degrees] __host__ __device__(const int& i) -> int {
+      if (deleted[i] == true) {
+        return std::numeric_limits<int>::max();
+      }
+      return degrees[i];
+    };
+    auto find_min_degree_value = thrust::transform_reduce(
+        policy, thrust::counting_iterator<vertex_t>(0),
+        thrust::counting_iterator<vertex_t>(n_vertices), find_min_degree_op,
+        std::numeric_limits<int>::max(), thrust::minimum<int>());
+    if (find_min_degree_value == std::numeric_limits<int>::max()) {
+      return true;
+    }
+    P->current_K = find_min_degree_value;
 
     // Fill the frontier with a sequence of vertices from 0 -> n_vertices.
     f->sequence((vertex_t)0, n_vertices, context.get_context(0)->stream());
 
-    return graph_empty;
+    return false;
   }
 };
 

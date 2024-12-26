@@ -68,7 +68,7 @@ struct problem_t : gunrock::problem_t<graph_t> {
     auto d_deltas = thrust::device_pointer_cast(deltas.data());
 
     thrust::fill_n(policy, d_sigmas, n_vertices, 0);
-    thrust::fill_n(policy, d_labels, n_vertices, -1);
+    thrust::fill_n(policy, d_labels, n_vertices, std::numeric_limits<weight_t>::max());
     thrust::fill_n(policy, d_deltas, n_vertices, 0);
 
     thrust::fill(policy, d_sigmas + this->param.single_source,
@@ -124,13 +124,13 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
                             edge_t const& edge,
                             weight_t const& weight) -> bool {
         auto new_label = labels[src] + 1;
-        auto old_label = math::atomic::cas(labels + dst, -1, new_label);
+        auto old_label = math::atomic::cas(labels + dst, std::numeric_limits<weight_t>::max(), new_label);
 
-        if ((old_label != -1) && (new_label != old_label))
+        if ((old_label != std::numeric_limits<weight_t>::max()) && (new_label != old_label))
           return false;
 
         math::atomic::add(sigmas + dst, sigmas[src]);
-        return old_label == -1;
+        return old_label == std::numeric_limits<weight_t>::max();
       };
 
       while (true) {

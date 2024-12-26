@@ -23,6 +23,11 @@
 namespace gunrock {
 
 /**
+ * @breief default mode is compare graph vertex&edge size,and using max value
+ */
+enum frontierInitSizeMode { size, vertex, edge };
+
+/**
  * @brief A simple struct to store enactor properties.
  *
  * @par Overview
@@ -48,6 +53,8 @@ struct enactor_properties_t {
    * Instead, the user is encouraged to manage the frontiers.
    */
   bool self_manage_frontiers{false};
+
+  frontierInitSizeMode init_size_mode{frontierInitSizeMode::size};
 
   /**
    * @brief Construct a new enactor properties t object with default values.
@@ -182,10 +189,20 @@ struct enactor_t {
      */
     if (!(properties.self_manage_frontiers)) {
       auto g = problem->get_graph();
-      std::size_t initial_size =
-          (g.get_number_of_edges() > g.get_number_of_vertices())
-              ? g.get_number_of_edges()
-              : g.get_number_of_vertices();
+      std::size_t initial_size = 0;
+      switch (properties.init_size_mode) {
+        case size:
+          initial_size = (g.get_number_of_edges() > g.get_number_of_vertices())
+                             ? g.get_number_of_edges()
+                             : g.get_number_of_vertices();
+          break;
+        case vertex:
+          initial_size = g.get_number_of_vertices();
+          break;
+        case edge:
+          initial_size = g.get_number_of_edges();
+          break;
+      }
 
       for (auto& buffer : frontiers) {
         buffer.set_resizing_factor(properties.frontier_sizing_factor);
