@@ -43,7 +43,7 @@ struct problem_t : gunrock::problem_t<graph_t> {
   using edge_t = typename graph_t::edge_type;
   using weight_t = typename graph_t::weight_type;
 
-  thrust::device_vector<vertex_t> labels;
+  thrust::device_vector<int> labels;
   thrust::device_vector<weight_t> deltas;
   thrust::device_vector<weight_t> sigmas;
 
@@ -68,7 +68,7 @@ struct problem_t : gunrock::problem_t<graph_t> {
     auto d_deltas = thrust::device_pointer_cast(deltas.data());
 
     thrust::fill_n(policy, d_sigmas, n_vertices, 0);
-    thrust::fill_n(policy, d_labels, n_vertices, std::numeric_limits<vertex_t>::max());
+    thrust::fill_n(policy, d_labels, n_vertices, -1);
     thrust::fill_n(policy, d_deltas, n_vertices, 0);
 
     thrust::fill(policy, d_sigmas + this->param.single_source,
@@ -124,20 +124,20 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
                             edge_t const& edge,
                             weight_t const& weight) -> bool {
         auto new_label = labels[src] + 1;
-        auto old_label = math::atomic::cas(labels + dst, std::numeric_limits<vertex_t>::max(), new_label);
+        auto old_label = math::atomic::cas(labels + dst, -1, new_label);
 
-        if ((old_label != std::numeric_limits<vertex_t>::max()) && (new_label != old_label))
+        if ((old_label != -1) && (new_label != old_label))
           return false;
 
         math::atomic::add(sigmas + dst, sigmas[src]);
-        return old_label == std::numeric_limits<vertex_t>::max();
+        return old_label == -1;
       };
 
       while (true) {
         auto in_frontier = &(this->frontiers[this->depth]);
         auto out_frontier = &(this->frontiers[this->depth + 1]);
 
-        operators::advance::execute<operators::load_balance_t::merge_path,
+        operators::advance::execute<operators::load_balance_t::block_mapped,
                                     operators::advance_direction_t::forward,
                                     operators::advance_io_type_t::vertices,
                                     operators::advance_io_type_t::vertices>(
@@ -175,7 +175,7 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
         auto in_frontier = &(this->frontiers[this->depth]);
         auto out_frontier = &(this->frontiers[this->depth + 1]);
 
-        operators::advance::execute<operators::load_balance_t::merge_path,
+        operators::advance::execute<operators::load_balance_t::block_mapped,
                                     operators::advance_direction_t::forward,
                                     operators::advance_io_type_t::vertices,
                                     operators::advance_io_type_t::none>(
