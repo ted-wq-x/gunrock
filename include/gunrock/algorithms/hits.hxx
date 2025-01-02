@@ -13,10 +13,7 @@
 
 #include <thrust/device_vector.h>
 #include <thrust/sequence.h>
-#include <thrust/copy.h>
 #include <thrust/execution_policy.h>
-
-#include <fstream>
 
 namespace gunrock {
 namespace hits {
@@ -73,11 +70,6 @@ struct problem_t : gunrock::problem_t<graph_t> {
   thrust::device_vector<weight_t> auth_next;
   thrust::device_vector<weight_t> hub_next;
 
-  // poniters to the data inside the device_vector
-  weight_t* auth_curr_p = nullptr;
-  weight_t* hub_curr_p = nullptr;
-  weight_t* auth_next_p = nullptr;
-  weight_t* hub_next_p = nullptr;
 
   problem_t(graph_t& G,
             std::shared_ptr<gcuda::multi_context_t> _context,
@@ -90,18 +82,14 @@ struct problem_t : gunrock::problem_t<graph_t> {
     auth_next.resize(n_vertices);
     hub_curr.resize(n_vertices);
     hub_next.resize(n_vertices);
-
-    auth_curr_p = auth_curr.data().get();
-    hub_curr_p = hub_curr.data().get();
-    auth_next_p = auth_next.data().get();
-    hub_next_p = hub_next.data().get();
   }
+
   void reset() override {
     auto policy = this->context->get_context(0)->execution_policy();
 
-    thrust::fill(policy, auth_curr.begin(), auth_curr.end(), 0);
+    thrust::fill(policy, auth_curr.begin(), auth_curr.end(), 1);
     thrust::fill(policy, auth_next.begin(), auth_next.end(), 0);
-    thrust::fill(policy, hub_curr.begin(), hub_curr.end(), 0);
+    thrust::fill(policy, hub_curr.begin(), hub_curr.end(), 1);
     thrust::fill(policy, hub_next.begin(), hub_next.end(), 0);
   }
 };  // end of problem_c
@@ -126,50 +114,53 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
     auto& auth = P->auth_next;
     auto& hub = P->hub_next;
 
-    auto auth_curr_p = P->auth_curr_p;
-    auto auth_next_p = P->auth_next_p;
+    auto auth_curr_p = P->auth_curr.data().get();
+    auto auth_next_p = P->auth_next.data().get();
 
-    auto hub_curr_p = P->hub_curr_p;
-    auto hub_next_p = P->hub_next_p;
+    auto hub_curr_p = P->hub_curr.data().get();
+    auto hub_next_p = P->hub_next.data().get();
 
     auto update = [=] __host__ __device__(
                       vertex_t & source, vertex_t & neighbor,
                       edge_t const& edge, weight_t const& weight) -> bool {
+      // hub-->auth
+      // auth<--hub
       math::atomic::add(&hub_next_p[source], auth_curr_p[neighbor]);
       math::atomic::add(&auth_next_p[neighbor], hub_curr_p[source]);
       return true;
     };  // end of update
 
     // Execute advance operator on the provided lambda
-    operators::advance::execute<operators::load_balance_t::block_mapped,
-                                operators::advance_direction_t::forward,
-                                operators::advance_io_type_t::graph,
-                                operators::advance_io_type_t::vertices>(
+
+    operators::advance::execute<
+        operators::load_balance_t::block_mapped,
+        operators::advance_direction_t::forward,
+        operators::advance_io_type_t::graph,
+        operators::advance_io_type_t::none>(  // graph+vertex,need input, bug
         G, E, update, context);
 
-    // Normalize authority
-    weight_t sum = 0;
-    thrust::for_each(policy, auth.begin(), auth.end(),
-                     thrust::square<weight_t>());
-    sum = thrust::reduce(policy, auth.begin(), auth.end());
-    thrust::for_each(policy, auth.begin(), auth.end(),
-                     [=] __host__ __device__(const weight_t& x) -> weight_t {
-                       return sqrt(x / sum);
-                     });
+    auto square = [] __host__ __device__(weight_t & x) { x *= x; };
+    // Normalize authority-->correct
+    thrust::for_each(policy, auth.begin(), auth.end(), square);
+    weight_t sum = thrust::reduce(policy, auth.begin(), auth.end());
+    thrust::for_each(
+        policy, auth.begin(), auth.end(),
+        [sum] __host__ __device__(weight_t & x) -> void { x = sqrt(x / sum); });
 
     // Normalize hub
-    thrust::for_each(policy, hub.begin(), hub.end(),
-                     thrust::square<weight_t>());
+    thrust::for_each(policy, hub.begin(), hub.end(), square);
     sum = thrust::reduce(policy, hub.begin(), hub.end());
-    thrust::for_each(policy, hub.begin(), hub.end(),
-                     [=] __host__ __device__(const weight_t& x) -> weight_t {
-                       return sqrt(x / sum);
-                     });
+    thrust::for_each(
+        policy, hub.begin(), hub.end(),
+        [sum] __host__ __device__(weight_t & x) -> void { x = sqrt(x / sum); });
 
     // Swap buffer
     thrust::swap(P->auth_curr, P->auth_next);
     thrust::swap(P->hub_curr, P->hub_next);
 
+    //reset
+    thrust::fill(policy, P->auth_next.begin(), P->auth_next.end(), 0.0);
+    thrust::fill(policy, P->hub_next.begin(), P->hub_next.end(), 0.0);
   }  // end of loop
 
   bool is_converged(gcuda::multi_context_t& context) override {
@@ -189,15 +180,6 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
   }
 
 };  // end of enactor_t
-
-template <typename ForwardIterator>
-void dump_result(ForwardIterator auth_dest,
-                 ForwardIterator hub_dest,
-                 ForwardIterator auth_src,
-                 ForwardIterator hub_src) {
-  thrust::swap(auth_dest, auth_src);
-  thrust::swap(hub_dest, hub_src);
-}
 
 // qqq get rid of template for better control
 template <typename graph_t, typename result_t>
@@ -226,8 +208,8 @@ float run(graph_t& G,
   result.auth = problem.auth_curr;
   result.hub = problem.hub_curr;
 
-  result.rank_authority();
-  result.rank_hub();
+  // result.rank_authority();
+  // result.rank_hub();
 
   return time;
 }
