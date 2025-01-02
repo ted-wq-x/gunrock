@@ -166,7 +166,7 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
 
         auto update = sigmas[src] / sigmas[dst] * (1 + deltas[dst]);
         math::atomic::add(deltas + src, update);
-        math::atomic::add(bc_values + src, 0.5f * update);  // scaled output
+        math::atomic::add(bc_values + src, 1.0f * update);  // scaled output
 
         return false;
       };
