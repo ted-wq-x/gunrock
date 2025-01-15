@@ -257,7 +257,11 @@ float run(graph_t& G,
 }
 
 template <typename graph_t>
-float run(graph_t& G, typename graph_t::weight_type* bc_values) {
+float run(graph_t& G,
+          typename graph_t::weight_type* bc_values,
+          std::shared_ptr<gcuda::multi_context_t> context =
+              std::shared_ptr<gcuda::multi_context_t>(
+                  new gcuda::multi_context_t(0))) {
   using vertex_t = typename graph_t::vertex_type;
   using weight_t = typename graph_t::weight_type;
 
@@ -266,7 +270,7 @@ float run(graph_t& G, typename graph_t::weight_type* bc_values) {
   thrust::fill_n(thrust::device, d_bc_values, n_vertices, (weight_t)0);
 
   auto f = [&](std::size_t job_idx) -> float {
-    return bc::run(G, (vertex_t)job_idx, bc_values);
+    return bc::run(G, (vertex_t)job_idx, bc_values, context);
   };
 
   std::size_t n_jobs = n_vertices;
